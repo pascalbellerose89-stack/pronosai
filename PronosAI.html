@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PronosAI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body,#root { height:100%; background:#06090f; }
+body { overflow-x:hidden; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+
+
+
+const LEAGUES = {
+  "Ligue 1": ["PSG","Olympique de Marseille","Olympique Lyonnais","AS Monaco","LOSC Lille","RC Lens","OGC Nice","Stade Rennais","RC Strasbourg","Stade Brestois","Toulouse FC","FC Nantes","Stade de Reims","Le Havre AC","Angers SCO","Montpellier HSC","Auxerre","Saint-Étienne"],
+  "Ligue 2": ["Auxerre","Bordeaux","Caen","Grenoble","Laval","Niort","Paris FC","Rodez","Saint-Étienne","Troyes","Valenciennes","Dunkerque","Amiens","Bastia","Ajaccio"],
+  "Coupe de France": ["PSG","Marseille","Lyon","Monaco","Lille","Lens","Nice","Rennes","Nantes","Strasbourg","Toulouse","Brest"],
+  "Premier League": ["Manchester City","Arsenal","Liverpool","Chelsea","Manchester United","Tottenham","Newcastle","Aston Villa","Brighton","West Ham","Brentford","Fulham","Crystal Palace","Wolves","Everton","Nottingham Forest","Bournemouth","Leicester","Ipswich","Southampton"],
+  "Championship": ["Leeds United","Sheffield United","Burnley","Middlesbrough","Sunderland","Norwich","Watford","Derby","Oxford","Blackburn"],
+  "FA Cup": ["Manchester City","Arsenal","Liverpool","Chelsea","Manchester United","Tottenham","Newcastle","Aston Villa"],
+  "La Liga": ["Real Madrid","FC Barcelone","Atlético Madrid","Séville FC","Real Betis","Real Sociedad","Villarreal","Athletic Bilbao","Valencia CF","Celta Vigo","Osasuna","Rayo Vallecano","Majorque","Getafe","Las Palmas","Girona","Alavés","Espanyol"],
+  "Copa del Rey": ["Real Madrid","FC Barcelone","Atlético Madrid","Séville","Athletic Bilbao","Real Sociedad","Villarreal","Betis"],
+  "Serie A": ["Inter Milan","AC Milan","Juventus","Napoli","AS Roma","Lazio","Atalanta","Fiorentina","Torino","Bologna","Monza","Udinese","Empoli","Lecce","Hellas Vérone","Cagliari","Gênes","Côme","Parme","Venezia"],
+  "Coppa Italia": ["Juventus","Inter","Milan","Napoli","Roma","Lazio","Atalanta","Fiorentina"],
+  "Bundesliga": ["Bayern Munich","Borussia Dortmund","Bayer Leverkusen","RB Leipzig","Eintracht Francfort","SC Freiburg","Union Berlin","Wolfsburg","Mainz","Hoffenheim","Augsbourg","Werder Brême","Bochum","Cologne","Stuttgart","Holstein Kiel","Saint-Pauli"],
+  "DFB Pokal": ["Bayern Munich","Dortmund","Leverkusen","Leipzig","Francfort","Freiburg","Stuttgart"],
+  "Champions League": ["Real Madrid","Manchester City","Bayern Munich","PSG","Liverpool","Chelsea","Barcelone","Juventus","Atlético Madrid","Borussia Dortmund","Inter Milan","Arsenal","Napoli","Benfica","Porto","Ajax","Bruges","PSV","Galatasaray","Fenerbahçe","Celtic","Rangers"],
+  "Europa League": ["Liverpool","Roma","Séville","Villarreal","Eintracht Francfort","Rangers","Feyenoord","Bayer Leverkusen","Atalanta","Lyon","Monaco","Betis","Ajax","PSV","Sporting CP","Braga"],
+  "Conference League": ["Fiorentina","West Ham","Olympiakos","PAOK","Slavia Prague","Gent","Lille","Chelsea","Aston Villa"],
+  "Ligue des Nations": ["France","Espagne","Allemagne","Portugal","Pays-Bas","Belgique","Italie","Angleterre","Croatie","Autriche","Suisse","Danemark","Hongrie","Écosse","Pologne","Turquie","Ukraine","Slovénie","Serbie","Géorgie"],
+  "Coupe du Monde 2026": ["France","Brésil","Argentine","Angleterre","Espagne","Allemagne","Portugal","Pays-Bas","Belgique","Italie","Croatie","Maroc","Sénégal","Japon","États-Unis","Mexique","Canada","Uruguay","Colombie","Équateur","Australie","Corée du Sud","Ghana","Cameroun","Tunisie","Algérie","Côte d'Ivoire","Danemark","Suisse","Autriche","Pologne","Serbie","Turquie","Iran","Arabie Saoudite","Qatar","Nigeria","Afrique du Sud","Pérou","Chili","Paraguay","Bolivie","Venezuela","Costa Rica","Panama","Honduras","Jamaïque","Nouvelle-Zélande","Indonésie"],
+  "Qualifications CDM (Europe)": ["France","Belgique","Portugal","Espagne","Allemagne","Italie","Angleterre","Croatie","Suisse","Danemark","Pays-Bas","Écosse","Grèce","Serbie","Slovaquie","Pologne","Roumanie","Albanie","Géorgie","Turquie","Ukraine","Irlande","Pays de Galles","Islande"],
+  "Euro 2024": ["France","Allemagne","Espagne","Angleterre","Portugal","Pays-Bas","Belgique","Italie","Croatie","Autriche","Suisse","Hongrie","Écosse","Danemark","Slovénie","Serbie","Roumanie","Slovaquie","Albanie","Tchéquie","Pologne","Turquie","Ukraine","Géorgie"],
+  "Matchs Amicaux (Sélections A)": ["France","Brésil","Argentine","Angleterre","Espagne","Allemagne","Portugal","Pays-Bas","Belgique","Italie","Croatie","Maroc","Sénégal","Japon","États-Unis","Mexique","Canada","Uruguay","Colombie","Côte d'Ivoire","Ghana","Cameroun","Nigeria","Algérie","Tunisie","Égypte","Australie","Corée du Sud","Danemark","Suisse","Autriche","Pologne","Serbie","Turquie","Ukraine","Suède","Norvège","Écosse","Grèce","Iran","Arabie Saoudite","Mali","Guinée","Burkina Faso","Cap-Vert","Gambie","Zimbabwe","Kenya","Zambie","Afrique du Sud","Venezuela","Pérou","Chili","Bolivie","Paraguay","Costa Rica","Panama","Honduras","Jamaïque","Nouvelle-Zélande","Indonésie","Vietnam","Thaïlande"],
+  "CAN (Coupe d'Afrique)": ["Maroc","Sénégal","Côte d'Ivoire","Égypte","Nigeria","Cameroun","Ghana","Algérie","Tunisie","Mali","Burkina Faso","Guinée","RD Congo","Afrique du Sud","Cap-Vert","Gambie","Mauritanie","Zambie","Zimbabwe","Angola","Tanzanie","Ouganda","Kenya","Namibie","Bénin","Gabon","Comores"],
+  "Copa America": ["Argentine","Brésil","Uruguay","Colombie","Chili","Équateur","Pérou","Bolivie","Paraguay","Venezuela","États-Unis","Mexique","Canada","Costa Rica","Panama","Jamaïque"],
+  "MLS": ["Inter Miami","LA Galaxy","LAFC","Seattle Sounders","Atlanta United","New York City FC","Portland Timbers","Dallas FC","Houston Dynamo","Minnesota United","Toronto FC","CF Montréal","Vancouver","Austin FC","Charlotte FC","Columbus Crew","DC United","Nashville SC","New England","Orlando City","Philadelphia Union"],
+  "Eredivisie": ["Ajax","PSV Eindhoven","Feyenoord","AZ Alkmaar","Utrecht","Twente","Groningen","NEC Nimègue","Sparta Rotterdam","Heerenveen","RKC Waalwijk","Almere","Heracles"],
+  "Pro League (Belgique)": ["Club Bruges","Anderlecht","Gent","Union Saint-Gilloise","Standard Liège","Genk","Antwerp","Mechelen","Cercle Bruges","Charleroi"],
+  "Liga Portugal": ["Benfica","Porto","Sporting CP","Braga","Vitória Guimarães","Gil Vicente","Famalicão","Casa Pia","Arouca","Rio Ave","Portimonense","Estoril"],
+  "Super Lig (Turquie)": ["Galatasaray","Fenerbahçe","Beşiktaş","Trabzonspor","Başakşehir","Sivasspor","Konyaspor","Alanyaspor","Kayserispor","Antalyaspor","Adana Demirspor","Gaziantep"],
+};
+
+const PALMARES = [
+  { match: "PSG vs Marseille", competition: "Ligue 1", prediction: "Victoire PSG", detail: "Paris 1X2", result: "2-0 ✓", confidence: 91, date: "15 Mar 2025", color: "#34D399" },
+  { match: "Man City vs Arsenal", competition: "Premier League", prediction: "+2,5 buts dans le match", detail: "Paris Buts", result: "3-1 ✓", confidence: 84, date: "22 Mar 2025", color: "#60A5FA" },
+  { match: "Real Madrid vs Barça", competition: "La Liga", prediction: "BTTS — Les 2 équipes marquent", detail: "Paris BTTS", result: "2-1 ✓", confidence: 88, date: "02 Avr 2025", color: "#A78BFA" },
+  { match: "Bayern vs Dortmund", competition: "Bundesliga", prediction: "Mbappé 1er buteur + Victoire Real", detail: "Combiné double", result: "1-0 Mbappé ✓", confidence: 74, date: "10 Avr 2025", color: "#FBBF24" },
+  { match: "Liverpool vs Chelsea", competition: "Premier League", prediction: "Liverpool marque en 1ère mi-temps", detail: "Paris Mi-temps", result: "But 23' ✓", confidence: 79, date: "18 Avr 2025", color: "#F87171" },
+  { match: "Inter vs Juventus", competition: "Serie A", prediction: "Match nul — 1X2", detail: "Paris 1X2", result: "1-1 ✓", confidence: 72, date: "27 Avr 2025", color: "#34D399" },
+  { match: "France vs Portugal", competition: "Ligue des Nations", prediction: "Score exact 2-1 France", detail: "Score exact", result: "2-1 ✓", confidence: 68, date: "05 Mai 2025", color: "#FBBF24" },
+  { match: "Barça vs Atlético", competition: "La Liga", prediction: "-2,5 buts dans le match", detail: "Paris Buts", result: "1-0 ✓", confidence: 77, date: "11 Mai 2025", color: "#60A5FA" },
+];
+
+const MOCK_HISTORIQUE = [
+  { match: "PSG vs Lyon", competition: "Ligue 1", prediction: "Victoire PSG", result: "2-0 ✓", date: "12 Mai 2025", statut: "gagne" },
+  { match: "Marseille vs Nice", competition: "Ligue 1", prediction: "BTTS Oui", result: "1-0 ✗", date: "08 Mai 2025", statut: "perdu" },
+  { match: "Real vs Atletico", competition: "La Liga", prediction: "Over 2.5 buts", result: "3-1 ✓", date: "03 Mai 2025", statut: "gagne" },
+];
+
+const LEXIQUE = [
+  { term: "BTTS", full: "Both Teams To Score", desc: "Les deux équipes marquent au moins un but. Paris populaire indépendant du résultat final." },
+  { term: "+2,5 buts", full: "Plus de 2,5 buts", desc: "Le match se termine avec 3 buts ou plus au total (les deux équipes confondues)." },
+  { term: "-2,5 buts", full: "Moins de 2,5 buts", desc: "Le match se termine avec 2 buts ou moins au total." },
+  { term: "1N2", full: "Résultat final", desc: "1 = victoire domicile, N = match nul, 2 = victoire extérieure." },
+  { term: "Handicap", full: "Handicap asiatique", desc: "Avantage fictif accordé à une équipe. Ex: -1 signifie gagner avec 2 buts d'écart minimum." },
+  { term: "H2H", full: "Head to Head", desc: "Confrontations directes historiques entre les deux équipes." },
+  { term: "Cote", full: "Cote bookmaker", desc: "Multiplicateur proposé. Cote 2.0 = vous doublez votre mise si vous gagnez." },
+  { term: "Value Bet", full: "Pari de valeur", desc: "Pari dont la probabilité réelle dépasse celle reflétée par la cote. Le vrai avantage du parieur expert." },
+  { term: "Combiné", full: "Pari combiné", desc: "Associer plusieurs paris. Toutes les sélections doivent gagner. Les cotes se multiplient, comme les risques." },
+  { term: "Bankroll", full: "Capital de jeu", desc: "Somme totale dédiée aux paris. La gérer est essentiel pour parier durablement." },
+  { term: "Clean Sheet", full: "Feuille vierge", desc: "Une équipe ne prend aucun but dans le match." },
+  { term: "xG", full: "Expected Goals", desc: "Buts attendus. Mesure la qualité des occasions, indépendamment des buts marqués." },
+];
+
+const PLANS = [
+  {
+    id: "free", label: "Gratuit", price: "0€", period: "", color: "#34D399", bg: "#052e16", border: "#34D39944",
+    tag: null, cta: "Entrer sur le terrain",
+    features: [
+      { text: "Toutes compétitions", ok: true },
+      { text: "Probabilités 1 / N / 2", ok: true },
+      { text: "Résumé de l'analyse", ok: true },
+      { text: "3 analyses par jour", ok: true },
+      { text: "Stats avancées (BTTS, Over...)", ok: false },
+      { text: "Suggestions de paris", ok: false },
+      { text: "Buteurs & scores exacts", ok: false },
+      { text: "Analyse de combinés", ok: false },
+      { text: "Historique personnel", ok: false },
+      { text: "Analyses illimitées", ok: false },
+    ],
+  },
+  {
+    id: "premium", label: "Premium", price: "9,99€", period: "/mois", color: "#60A5FA", bg: "#0c1a3a", border: "#60A5FA44",
+    tag: null, cta: "Rejoindre le vestiaire Premium",
+    features: [
+      { text: "Toutes compétitions", ok: true },
+      { text: "Probabilités 1 / N / 2", ok: true },
+      { text: "Résumé de l'analyse", ok: true },
+      { text: "Analyses illimitées", ok: true },
+      { text: "Stats avancées (BTTS, Over...)", ok: true },
+      { text: "Suggestions de paris commentées", ok: true },
+      { text: "Buteurs & scores exacts", ok: false },
+      { text: "Analyse de combinés", ok: false },
+      { text: "Historique personnel", ok: true },
+      { text: "Évaluation des risques", ok: false },
+    ],
+  },
+  {
+    id: "luxe", label: "Luxe", price: "19,99€", period: "/mois", color: "#FBBF24", bg: "#1c1000", border: "#FBBF24",
+    tag: "⭐ Recommandé par nos supporters", cta: "Rejoindre le vestiaire Luxe",
+    features: [
+      { text: "Toutes compétitions", ok: true },
+      { text: "Probabilités 1 / N / 2", ok: true },
+      { text: "Résumé de l'analyse", ok: true },
+      { text: "Analyses illimitées", ok: true },
+      { text: "Stats avancées (BTTS, Over...)", ok: true },
+      { text: "Suggestions de paris commentées", ok: true },
+      { text: "Buteurs & scores exacts", ok: true },
+      { text: "Analyse de combinés", ok: true },
+      { text: "Historique personnel", ok: true },
+      { text: "Évaluation des risques complète", ok: true },
+    ],
+  },
+];
+
+
+const G = `
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Outfit',sans-serif;background:#06090f;color:#e2e8f0;-webkit-font-smoothing:antialiased;}
+input,select,textarea{-webkit-appearance:none;appearance:none;font-family:'Outfit',sans-serif;}
+input::placeholder,textarea::placeholder{color:#1e293b;}
+button{font-family:'Outfit',sans-serif;}
+::-webkit-scrollbar{width:0;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes countUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+`;
+
+
+const s = (obj) => Object.entries(obj).reduce((a,[k,v])=>({...a,[k]:v}),{});
+
+function Logo({ size = "md" }) {
+  const fs = size === "lg" ? 36 : size === "sm" ? 16 : 24;
+  const iconSize = size === "lg" ? 52 : size === "sm" ? 22 : 34;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap: size==="lg"?14:8 }}>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 52 52" fill="none">
+        <path d="M26 3L47 15V37L26 49L5 37V15L26 3Z" fill="#06090f" stroke="#FBBF24" strokeWidth="2"/>
+        <circle cx="26" cy="26" r="11" fill="none" stroke="#FBBF2444" strokeWidth="1.5"/>
+        <path d="M28 14L20 27H25L23 38L31 25H26L28 14Z" fill="#FBBF24"/>
+      </svg>
+      <div>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:fs, lineHeight:1, letterSpacing:-0.5 }}>
+          <span style={{ color:"#f1f5f9" }}>Pronos</span>
+          <span style={{ background:"linear-gradient(135deg,#FBBF24,#F59E0B)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>AI</span>
+        </div>
+        {size !== "sm" && <div style={{ fontSize:9, letterSpacing:2.5, color:"#334155", textTransform:"uppercase", marginTop:1 }}>Paris · Analyse · Intelligence</div>}
+      </div>
+    </div>
+  );
+}
+
+function Btn({ children, onClick, variant="gold", disabled, full, size="md" }) {
+  const variants = {
+    gold: { background:"linear-gradient(135deg,#D97706,#FBBF24)", color:"#000" },
+    blue: { background:"linear-gradient(135deg,#1D4ED8,#60A5FA)", color:"#fff" },
+    green: { background:"linear-gradient(135deg,#059669,#34D399)", color:"#000" },
+    ghost: { background:"transparent", color:"#94a3b8", border:"1px solid #1e293b" },
+    danger: { background:"transparent", color:"#f87171", border:"1px solid #7f1d1d" },
+  };
+  const sizes = { sm:"8px 14px", md:"12px 20px", lg:"15px 28px" };
+  const fs = { sm:12, md:14, lg:15 };
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      padding:sizes[size], border:"none", borderRadius:12,
+      fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:fs[size],
+      cursor:disabled?"not-allowed":"pointer", opacity:disabled?.5:1,
+      transition:"all .2s", width:full?"100%":"auto",
+      ...variants[variant],
+    }}>{children}</button>
+  );
+}
+
+function Input({ label, type="text", value, onChange, placeholder, hint }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      {label && <label style={{ display:"block", fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:6, fontFamily:"'Syne',sans-serif" }}>{label}</label>}
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        style={{ width:"100%", background:"#080c15", border:"1.5px solid #1e293b", borderRadius:12, padding:"12px 14px", color:"#e2e8f0", fontSize:14, outline:"none" }} />
+      {hint && <div style={{ fontSize:11, color:"#475569", marginTop:4 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function TeamSearch({ label, value, onChange, teams }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState(value);
+  const ref = useRef();
+  const filtered = q.length > 0 ? teams.filter(t => t.toLowerCase().includes(q.toLowerCase())).slice(0,6) : teams.slice(0,6);
+
+  useEffect(() => { setQ(value); }, [value]);
+
+  return (
+    <div style={{ position:"relative" }} ref={ref}>
+      {label && <label style={{ display:"block", fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:6, fontFamily:"'Syne',sans-serif" }}>{label}</label>}
+      <input
+        value={q}
+        onChange={e => { setQ(e.target.value); onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(()=>setOpen(false),150)}
+        placeholder="Tapez ou sélectionnez..."
+        style={{ width:"100%", background:"#080c15", border:"1.5px solid #1e293b", borderRadius:12, padding:"12px 14px", color:"#e2e8f0", fontSize:14, outline:"none" }}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, background:"#0f172a", border:"1px solid #1e293b", borderRadius:12, zIndex:50, overflow:"hidden", boxShadow:"0 8px 32px rgba(0,0,0,.6)" }}>
+          {filtered.map(t => (
+            <div key={t} onMouseDown={() => { onChange(t); setQ(t); setOpen(false); }}
+              style={{ padding:"10px 14px", fontSize:13, color:"#cbd5e1", cursor:"pointer", borderBottom:"1px solid #0f172a20" }}
+              onMouseEnter={e=>e.target.style.background="#1e293b"}
+              onMouseLeave={e=>e.target.style.background="transparent"}>
+              ⚽ {t}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Tooltip({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position:"relative", display:"inline-block" }}>
+      <button onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)} onClick={()=>setShow(!show)}
+        style={{ background:"#1e293b", border:"1px solid #334155", color:"#94a3b8", borderRadius:"50%", width:16, height:16, fontSize:9, fontWeight:700, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", marginLeft:4, flexShrink:0 }}>
+        i
+      </button>
+      {show && (
+        <div style={{ position:"absolute", bottom:"calc(100% + 6px)", left:"50%", transform:"translateX(-50%)", background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:"10px 12px", width:220, fontSize:12, color:"#cbd5e1", zIndex:100, lineHeight:1.5, boxShadow:"0 8px 24px rgba(0,0,0,.6)" }}>
+          {text}
+          <div style={{ position:"absolute", top:"100%", left:"50%", transform:"translateX(-50%)", border:"6px solid transparent", borderTopColor:"#334155" }}/>
+        </div>
+      )}
+    </span>
+  );
+}
+
+function ProbBar({ label, value, color, tooltip }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+        <span style={{ fontSize:13, color:"#94a3b8", display:"flex", alignItems:"center" }}>{label}{tooltip&&<Tooltip text={tooltip}/>}</span>
+        <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:16, color }}>{value}%</span>
+      </div>
+      <div style={{ height:7, background:"#1e293b", borderRadius:4, overflow:"hidden" }}>
+        <div style={{ height:"100%", width:`${value}%`, background:color, borderRadius:4, transition:"width 1.2s cubic-bezier(.22,1,.36,1)" }}/>
+      </div>
+    </div>
+  );
+}
+
+function Stars({ n, max=5, color="#FBBF24" }) {
+  return <span>{Array.from({length:max}).map((_,i)=><span key={i} style={{ color:i<n?color:"#1e293b", fontSize:13 }}>★</span>)}</span>;
+}
+
+function RiskBadge({ risque }) {
+  const m = { faible:["#22c55e","#052e16"], moyen:["#f59e0b","#1c1000"], "élevé":["#ef4444","#1a0000"] };
+  const [c,bg] = m[risque?.toLowerCase()]||["#94a3b8","#1e293b"];
+  return <span style={{ fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:20, background:bg, color:c, border:`1px solid ${c}44`, letterSpacing:.5, textTransform:"uppercase" }}>{risque}</span>;
+}
+
+
+function buildPrompt(tier, { team1, team2, competition, comboMatches }) {
+  const base = `Tu es un analyste sportif professionnel expert. Base-toi sur toutes tes connaissances: forme récente des équipes (5 derniers matchs), confrontations directes historiques (H2H), statistiques de buts, effectifs, blessures connues, contexte de la compétition, enjeux sportifs, et tout critère pertinent.`;
+
+  if (tier === "free") return `${base}
+Compétition: ${competition||"Non précisée"} | Match: ${team1} vs ${team2}
+Réponds UNIQUEMENT en JSON pur sans markdown:
+{"resume":"3-4 phrases sur les critères analysés: forme, H2H, force offensive/défensive, contexte","proba_1":45,"proba_n":28,"proba_2":27,"verdict":"Victoire ${team1} légèrement favorite"}
+Les 3 probabilités doivent totaliser exactement 100.`;
+
+  if (tier === "premium") return `${base}
+Compétition: ${competition||"Non précisée"} | Match: ${team1} vs ${team2}
+Réponds UNIQUEMENT en JSON pur sans markdown:
+{"resume":"6-8 phrases d'analyse pro: forme 5 derniers matchs, H2H récent, buts marqués/encaissés, atouts/faiblesses, enjeux","proba_1":45,"proba_n":25,"proba_2":30,"stats":{"over25":62,"btts":55,"under25":38,"clean_sheet_1":30,"clean_sheet_2":22},"paris":[{"type":"1X2","selection":"Victoire ${team1}","confiance":4,"explication":"..."},{"type":"Buts","selection":"Over 2.5 buts","confiance":3,"explication":"..."},{"type":"BTTS","selection":"BTTS Oui","confiance":3,"explication":"..."}],"verdict":"Verdict en une phrase"}`;
+
+  const comboTxt = (comboMatches||[]).filter(m=>m.t1&&m.t2).map((m,i)=>`Match ${i+2}: ${m.t1} vs ${m.t2}`).join("\n");
+  return `${base}
+Compétition: ${competition||"Non précisée"} | Match: ${team1} vs ${team2}${comboTxt?`\nCombinés:\n${comboTxt}`:""}
+Réponds UNIQUEMENT en JSON pur sans markdown:
+{"resume":"10-12 phrases analyse experte complète: forme détaillée, H2H, stats avancées, tactiques, blessures, motivation, pression","proba_1":40,"proba_n":25,"proba_2":35,"stats":{"over25":65,"btts":58,"under25":35,"clean_sheet_1":28,"clean_sheet_2":20,"over35":40,"handicap":"-0.5 ${team1}"},"buteurs_probables":[{"nom":"Joueur 1","equipe":"${team1}","proba":35},{"nom":"Joueur 2","equipe":"${team2}","proba":28}],"score_exact":[{"score":"2-1","proba":16},{"score":"1-1","proba":13},{"score":"2-0","proba":11}],"mi_temps":{"proba_1":38,"proba_n":42,"proba_2":20,"over15_ht":45},"paris":[{"type":"1X2","selection":"Victoire ${team1}","cote_estimee":"1.85","confiance":4,"risque":"faible","explication":"..."},{"type":"Buts","selection":"Over 2.5 buts","cote_estimee":"1.75","confiance":4,"risque":"faible","explication":"..."},{"type":"BTTS","selection":"BTTS Oui","cote_estimee":"1.90","confiance":3,"risque":"moyen","explication":"..."},{"type":"Score","selection":"2-1","cote_estimee":"7.00","confiance":2,"risque":"élevé","explication":"..."},{"type":"Buteur","selection":"Premier buteur","cote_estimee":"4.50","confiance":3,"risque":"moyen","explication":"..."}],"risque_global":6,"bankroll_recommande":3${comboTxt?`,"combo":{"proba_reussite":32,"cote_combinee":"8.50","analyse":"Analyse du combiné","recommandation":"Jouable en petite mise"}`:""},"verdict":"Verdict expert percutant"}`;
+}
+
+
+function ResultBlock({ data, tier, team1, team2 }) {
+  const tc = PLANS.find(p=>p.id===tier)?.color||"#34D399";
+  return (
+    <div style={{ animation:"fadeUp .5s ease" }}>
+      <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+        <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:10, fontFamily:"'Syne',sans-serif" }}>Analyse PronosAI</div>
+        <p style={{ fontSize:13.5, lineHeight:1.8, color:"#cbd5e1", margin:0 }}>{data.resume}</p>
+        {data.verdict && <div style={{ marginTop:12, padding:"10px 14px", background:`${tc}12`, border:`1px solid ${tc}33`, borderRadius:10, fontSize:13, fontWeight:600, color:tc, fontFamily:"'Syne',sans-serif" }}>🎯 {data.verdict}</div>}
+      </div>
+
+      <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+        <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Probabilités</div>
+        <ProbBar label={`Victoire ${team1}`} value={data.proba_1} color="#34d399" tooltip={`Chance de victoire de ${team1}`}/>
+        <ProbBar label="Match nul" value={data.proba_n} color="#94a3b8" tooltip="Probabilité d'égalité à la fin du temps réglementaire"/>
+        <ProbBar label={`Victoire ${team2}`} value={data.proba_2} color="#f87171" tooltip={`Chance de victoire de ${team2}`}/>
+      </div>
+
+      {data.stats && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Stats Avancées</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            {[["over25","Over 2.5 buts","3 buts ou plus dans le match"],["btts","BTTS","Les deux équipes marquent"],["under25","Under 2.5 buts","2 buts ou moins"],["clean_sheet_1",`CS ${team1}`,"Feuille vierge pour "+team1],["over35","Over 3.5 buts","4 buts ou plus"]].map(([k,l,tip])=>data.stats[k]!=null&&(
+              <div key={k} style={{ background:"#080c15", border:"1px solid #1e293b", borderRadius:12, padding:"12px 14px" }}>
+                <div style={{ fontSize:11, color:"#64748b", marginBottom:4, display:"flex", alignItems:"center" }}>{l}<Tooltip text={tip}/></div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, color:tc }}>{data.stats[k]}%</div>
+              </div>
+            ))}
+          </div>
+          {data.stats.handicap && <div style={{ marginTop:10, padding:"10px 14px", background:"#080c15", border:"1px solid #1e293b", borderRadius:12, fontSize:13, color:"#94a3b8", display:"flex", alignItems:"center", gap:6 }}><span style={{ color:tc, fontWeight:700 }}>Handicap recommandé:</span> {data.stats.handicap}<Tooltip text="Le handicap asiatique réduit les issues à 2 résultats possibles en accordant un avantage fictif"/></div>}
+        </div>
+      )}
+
+      {data.paris && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Suggestions de Paris</div>
+          {data.paris.map((p,i)=>(
+            <div key={i} style={{ marginBottom:10, background:"#080c15", border:"1px solid #1e293b", borderRadius:14, padding:"12px 14px" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6, flexWrap:"wrap", gap:6 }}>
+                <div><span style={{ fontSize:10, color:"#475569", marginRight:6, textTransform:"uppercase", letterSpacing:1 }}>{p.type}</span><span style={{ fontSize:14, fontWeight:600, color:"#e2e8f0", fontFamily:"'Syne',sans-serif" }}>{p.selection}</span></div>
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  {p.cote_estimee&&<span style={{ fontSize:12, fontWeight:700, color:tc, background:`${tc}15`, padding:"2px 8px", borderRadius:8 }}>@{p.cote_estimee}</span>}
+                  {p.risque&&<RiskBadge risque={p.risque}/>}
+                </div>
+              </div>
+              <Stars n={p.confiance} color={tc}/>
+              {p.explication&&<p style={{ fontSize:12, color:"#64748b", marginTop:6, lineHeight:1.5 }}>{p.explication}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.buteurs_probables && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Buteurs Probables</div>
+          {data.buteurs_probables.map((b,i)=>(
+            <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:i<data.buteurs_probables.length-1?"1px solid #1e293b":"none" }}>
+              <div><div style={{ fontSize:14, fontWeight:600, color:"#f1f5f9", fontFamily:"'Syne',sans-serif" }}>{b.nom}</div><div style={{ fontSize:11, color:"#475569" }}>{b.equipe}</div></div>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:tc }}>{b.proba}%</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.score_exact && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Scores Exacts Probables</div>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+            {data.score_exact.map((s,i)=>(
+              <div key={i} style={{ background:"#080c15", border:`1px solid ${i===0?tc:"#1e293b"}`, borderRadius:12, padding:"10px 16px", textAlign:"center", minWidth:70 }}>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:i===0?tc:"#e2e8f0" }}>{s.score}</div>
+                <div style={{ fontSize:11, color:"#64748b" }}>{s.proba}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.mi_temps && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Mi-Temps</div>
+          <ProbBar label={`${team1} mène`} value={data.mi_temps.proba_1} color="#34d399"/>
+          <ProbBar label="Égalité" value={data.mi_temps.proba_n} color="#94a3b8"/>
+          <ProbBar label={`${team2} mène`} value={data.mi_temps.proba_2} color="#f87171"/>
+          {data.mi_temps.over15_ht!=null&&<div style={{ padding:"10px 14px", background:"#080c15", border:"1px solid #1e293b", borderRadius:12, fontSize:13, color:"#94a3b8", display:"flex", justifyContent:"space-between" }}><span style={{ display:"flex", alignItems:"center" }}>Over 1.5 buts (1ère mi-temps)<Tooltip text="2 buts ou plus avant la pause"/></span><span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, color:tc }}>{data.mi_temps.over15_ht}%</span></div>}
+        </div>
+      )}
+
+      {data.combo && (
+        <div style={{ background:"#0f172a", border:`1px solid ${tc}44`, borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:tc, marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Analyse du Combiné<Tooltip text="Toutes les sélections doivent être gagnantes. Risque élevé, récompense élevée."/></div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+            <div style={{ background:"#080c15", border:"1px solid #1e293b", borderRadius:12, padding:"12px 14px" }}><div style={{ fontSize:11, color:"#64748b", marginBottom:4 }}>Probabilité de réussite</div><div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:24, color:tc }}>{data.combo.proba_reussite}%</div></div>
+            <div style={{ background:"#080c15", border:"1px solid #1e293b", borderRadius:12, padding:"12px 14px" }}><div style={{ fontSize:11, color:"#64748b", marginBottom:4 }}>Cote combinée</div><div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:24, color:"#FBBF24" }}>@{data.combo.cote_combinee}</div></div>
+          </div>
+          <p style={{ fontSize:13, color:"#94a3b8", lineHeight:1.6, marginBottom:10 }}>{data.combo.analyse}</p>
+          <div style={{ padding:"10px 14px", background:`${tc}10`, border:`1px solid ${tc}33`, borderRadius:10, fontSize:13, fontWeight:600, color:tc }}>💡 {data.combo.recommandation}</div>
+        </div>
+      )}
+
+      {data.risque_global!=null && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:18, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:14, fontFamily:"'Syne',sans-serif" }}>Évaluation des Risques</div>
+          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+            <div style={{ position:"relative", width:70, height:70 }}>
+              <svg viewBox="0 0 36 36" style={{ width:70, height:70, transform:"rotate(-90deg)" }}>
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#1e293b" strokeWidth="4"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke={data.risque_global>7?"#ef4444":data.risque_global>4?"#f59e0b":"#22c55e"} strokeWidth="4" strokeDasharray={`${(data.risque_global/10)*88} 88`} strokeLinecap="round"/>
+              </svg>
+              <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#f1f5f9" }}>{data.risque_global}</span>
+                <span style={{ fontSize:9, color:"#475569" }}>/10</span>
+              </div>
+            </div>
+            <div><div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f1f5f9", marginBottom:4 }}>Risque global du match</div><div style={{ fontSize:12, color:"#64748b" }}>Mise recommandée : <span style={{ color:tc, fontWeight:700 }}>{data.bankroll_recommande}% de bankroll</span></div></div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ background:"#0c0c0c", border:"1px solid #1e293b", borderRadius:14, padding:"12px 14px", fontSize:11, color:"#475569", lineHeight:1.5 }}>
+        ⚠️ <strong style={{ color:"#64748b" }}>Jeu responsable :</strong> Les analyses sont fournies à titre informatif uniquement. Ne pariez jamais plus que ce que vous pouvez perdre. <a href="https://www.joueurs-info-service.fr" target="_blank" style={{ color:"#475569" }}>joueurs-info-service.fr</a>
+      </div>
+    </div>
+  );
+}
+
+
+function LandingPage({ onNav, onChoosePlan, onQuiSommesNous }) {
+  const [count, setCount] = useState(0);
+  useEffect(()=>{
+    const target = 2847;
+    const step = Math.ceil(target/60);
+    const t = setInterval(()=>setCount(c=>{ if(c>=target){clearInterval(t);return target;} return c+step; }),20);
+    return ()=>clearInterval(t);
+  },[]);
+
+  return (
+    <div>
+      {/* Hero */}
+      <div style={{ padding:"0 20px", textAlign:"center", paddingTop:48, paddingBottom:40, background:"radial-gradient(ellipse 80% 60% at 50% 0%, #1c1000, transparent)", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(circle at 20% 50%, #FBBF2408 0%, transparent 50%), radial-gradient(circle at 80% 20%, #60A5FA06 0%, transparent 50%)", pointerEvents:"none" }}/>
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:24 }}><Logo size="lg"/></div>
+        <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:28, lineHeight:1.2, color:"#f1f5f9", marginBottom:14, letterSpacing:-0.5 }}>
+          C'est ici que tes paris<br/>
+          <span style={{ background:"linear-gradient(135deg,#FBBF24,#F59E0B)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>entrent pleine lucarne.</span>
+        </h1>
+        <p style={{ fontSize:15, color:"#64748b", lineHeight:1.7, maxWidth:320, margin:"0 auto 28px" }}>
+          Quand l'instinct du parieur rencontre la puissance de l'IA — une app pensée par un parieur, pour les parieurs.
+        </p>
+
+        {/* Stats bar */}
+        <div style={{ display:"flex", justifyContent:"center", gap:6, marginBottom:28, flexWrap:"wrap" }}>
+          {[["73%","de réussite ce mois"],["⚡","IA en temps réel"],["🔒","Données sécurisées"]].map(([v,l])=>(
+            <div key={l} style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:20, padding:"6px 14px", fontSize:12 }}>
+              <span style={{ fontWeight:700, color:"#FBBF24", fontFamily:"'Syne',sans-serif" }}>{v}</span>
+              <span style={{ color:"#64748b", marginLeft:5 }}>{l}</span>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={onChoosePlan} style={{ background:"linear-gradient(135deg,#D97706,#FBBF24)", border:"none", borderRadius:16, padding:"16px 32px", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#000", cursor:"pointer", boxShadow:"0 0 40px #FBBF2444", letterSpacing:0.3 }}>
+          ⚽ Choisir son camp
+        </button>
+        <div style={{ fontSize:11, color:"#334155", marginTop:10 }}>Accès gratuit disponible · Sans carte bancaire</div>
+      </div>
+
+      {/* Compteur analyses */}
+      <div style={{ margin:"0 20px 24px", background:"linear-gradient(135deg,#0f172a,#1c1000)", border:"1px solid #FBBF2433", borderRadius:20, padding:"20px", textAlign:"center" }}>
+        <div style={{ fontSize:11, letterSpacing:2, textTransform:"uppercase", color:"#64748b", marginBottom:8, fontFamily:"'Syne',sans-serif" }}>Palmarès PronosAI</div>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:42, color:"#FBBF24", lineHeight:1 }}>{count.toLocaleString()}</div>
+        <div style={{ fontSize:13, color:"#64748b", marginTop:4 }}>analyses gagnantes depuis le lancement</div>
+      </div>
+
+      {/* Palmarès */}
+      <div style={{ padding:"0 20px" }}>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9", marginBottom:4 }}>🏆 Palmarès récent</div>
+        <div style={{ fontSize:12, color:"#475569", marginBottom:16 }}>Diversité des analyses — résultats confirmés par les vrais scores</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {PALMARES.map((p,i)=>(
+            <div key={i} style={{ background:"#0f172a", border:`1px solid ${p.color}22`, borderRadius:16, padding:"14px 16px", display:"flex", alignItems:"center", gap:14, animation:`fadeUp .4s ease ${i*.07}s both` }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:`${p.color}15`, border:`1px solid ${p.color}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>✓</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
+                  <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color:"#f1f5f9", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.match}</span>
+                  <span style={{ fontSize:9, fontWeight:700, padding:"2px 6px", borderRadius:20, background:`${p.color}20`, color:p.color, border:`1px solid ${p.color}44`, whiteSpace:"nowrap", flexShrink:0, textTransform:"uppercase", letterSpacing:.5 }}>{p.detail}</span>
+                </div>
+                <div style={{ fontSize:11, color:"#475569", marginBottom:2 }}>{p.competition} · {p.date}</div>
+                <div style={{ fontSize:12, color:"#94a3b8" }}>{p.prediction}</div>
+              </div>
+              <div style={{ textAlign:"right", flexShrink:0 }}>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:14, color:p.color }}>{p.result}</div>
+                <div style={{ fontSize:10, color:"#64748b", marginTop:2 }}>{p.confidence}% confiance</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA bottom */}
+      <div style={{ padding:"28px 20px 0", textAlign:"center" }}>
+        <button onClick={onChoosePlan} style={{ background:"linear-gradient(135deg,#D97706,#FBBF24)", border:"none", borderRadius:16, padding:"16px 28px", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:15, color:"#000", cursor:"pointer", width:"100%" }}>
+          ⚽ Choisir son camp
+        </button>
+      </div>
+
+      {/* Blurred preview teaser */}
+      <div style={{ margin:"24px 20px 0", position:"relative", overflow:"hidden", borderRadius:20 }}>
+        <div style={{ filter:"blur(6px)", pointerEvents:"none", background:"#0f172a", border:"1px solid #1e293b", borderRadius:20, padding:18, opacity:0.7 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:10, fontFamily:"'Syne',sans-serif" }}>Analyse PronosAI</div>
+          <div style={{ height:12, background:"#1e293b", borderRadius:6, marginBottom:8, width:"90%" }}/>
+          <div style={{ height:12, background:"#1e293b", borderRadius:6, marginBottom:8, width:"75%" }}/>
+          <div style={{ height:12, background:"#1e293b", borderRadius:6, marginBottom:16, width:"85%" }}/>
+          <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+            {["Victoire PSG","Match nul","Victoire OM"].map((l,i)=>(
+              <div key={i} style={{ flex:1, background:"#080c15", borderRadius:10, padding:"10px 8px" }}>
+                <div style={{ fontSize:10, color:"#475569", marginBottom:4 }}>{l}</div>
+                <div style={{ height:8, background:["#34d399","#94a3b8","#f87171"][i], borderRadius:4, width:[`${65}%`,`${22}%`,`${13}%`][i] }}/>
+                <div style={{ fontWeight:800, fontSize:16, color:["#34d399","#94a3b8","#f87171"][i], fontFamily:"'Syne',sans-serif", marginTop:4 }}>{["65%","22%","13%"][i]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Lock overlay */}
+        <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"rgba(6,9,15,0.6)", borderRadius:20, cursor:"pointer" }} onClick={onChoosePlan}>
+          <div style={{ fontSize:32, marginBottom:8 }}>🔐</div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#f1f5f9", marginBottom:4 }}>Débloque ton analyse</div>
+          <div style={{ fontSize:12, color:"#64748b", marginBottom:16, textAlign:"center", maxWidth:220 }}>Crée un compte gratuit pour accéder à toutes les analyses</div>
+          <div style={{ background:"linear-gradient(135deg,#D97706,#FBBF24)", borderRadius:12, padding:"10px 20px", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:13, color:"#000" }}>
+            ⚽ C'est gratuit
+          </div>
+        </div>
+      </div>
+
+      {/* Footer links */}
+      <div style={{ padding:"24px 20px 8px", display:"flex", justifyContent:"center" }}>
+        <button onClick={onQuiSommesNous} style={{ background:"none", border:"none", color:"#334155", fontSize:12, cursor:"pointer", textDecoration:"underline" }}>Qui sommes-nous ?</button>
+      </div>
+      <div style={{ textAlign:"center", fontSize:10, color:"#1e293b", paddingBottom:16 }}>© 2026 PronosAI · Tous droits réservés · Jeu responsable 18+</div>
+    </div>
+  );
+}
+function PricingCTA({ selected, onSelect }) {
+  const plan = PLANS.find(p=>p.id===selected);
+  if (!plan) return null;
+  return (
+    <div>
+      {selected !== "free" && (
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:14, padding:"12px 16px", marginBottom:12 }}>
+          <div style={{ fontSize:11, color:"#64748b", marginBottom:6, display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ color:"#34D399" }}>🔒</span> Paiement sécurisé via Stripe · Crypté SSL
+          </div>
+          <div style={{ fontSize:11, color:"#64748b", display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ color:"#34D399" }}>✓</span> Annulation en 1 clic · Tout mois commencé est dû
+          </div>
+        </div>
+      )}
+      <button onClick={()=>onSelect(selected)} style={{ width:"100%", padding:16, border:"none", borderRadius:14, background:`linear-gradient(135deg,${plan.color}cc,${plan.color})`, color:selected==="luxe"?"#000":"#fff", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+        {plan.cta}
+      </button>
+      {selected==="luxe" && <div style={{ textAlign:"center", fontSize:11, color:"#475569", marginTop:8 }}>⭐ Recommandé par nos supporters</div>}
+    </div>
+  );
+}
+
+function PricingPage({ onSelect, onBack }) {
+  const [selected, setSelected] = useState("luxe");
+  return (
+    <div>
+      <div style={{ padding:"20px 20px 0", display:"flex", alignItems:"center", gap:12 }}>
+        <button onClick={onBack} style={{ background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>←</button>
+        <div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9" }}>Choisir son camp</div>
+          <div style={{ fontSize:11, color:"#475569" }}>Annulable à tout moment · Paiement sécurisé</div>
+        </div>
+      </div>
+      <div style={{ display:"flex", gap:8, padding:"16px 20px 0", overflowX:"auto" }}>
+        {PLANS.map(p=>(
+          <div key={p.id} onClick={()=>setSelected(p.id)} style={{ flex:"0 0 calc(33.33% - 6px)", borderRadius:16, border:`2px solid ${selected===p.id?p.color:p.border}`, background:selected===p.id?p.bg:"#0a0e17", padding:"14px 10px", cursor:"pointer", transition:"all .2s", position:"relative", overflow:"hidden" }}>
+            {p.tag && <div style={{ position:"absolute", top:0, left:0, right:0, background:"linear-gradient(135deg,#D97706,#FBBF24)", color:"#000", fontSize:8, fontWeight:800, textAlign:"center", padding:"3px 4px", letterSpacing:.5, fontFamily:"'Syne',sans-serif" }}>⭐ SUPPORTERS</div>}
+            <div style={{ marginTop:p.tag?14:0, textAlign:"center" }}>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:13, color:selected===p.id?p.color:"#475569", marginBottom:4 }}>{p.label}</div>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:p.color }}>{p.price}</div>
+              <div style={{ fontSize:9, color:"#475569" }}>{p.period||"gratuit"}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ margin:"16px 20px 0", background:"#0f172a", border:"1px solid #1e293b", borderRadius:20, overflow:"hidden" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px", padding:"10px 14px", background:"#080c15", borderBottom:"1px solid #1e293b" }}>
+          <div style={{ fontSize:10, color:"#475569", fontWeight:700, textTransform:"uppercase", letterSpacing:1 }}>Fonctionnalité</div>
+          {PLANS.map(p=><div key={p.id} style={{ textAlign:"center", fontSize:10, fontWeight:700, color:p.color, fontFamily:"'Syne',sans-serif" }}>{p.label}</div>)}
+        </div>
+        {PLANS[0].features.map((f,i)=>(
+          <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px", padding:"10px 14px", borderBottom:i<PLANS[0].features.length-1?"1px solid #1e293b11":"none", background:i%2===0?"transparent":"#080c1540" }}>
+            <div style={{ fontSize:12, color:"#94a3b8", paddingRight:8, lineHeight:1.4 }}>{f.text}</div>
+            {PLANS.map(p=>(
+              <div key={p.id} style={{ textAlign:"center", fontSize:16 }}>
+                {p.features[i].ok ? <span style={{ color:p.color }}>✓</span> : <span style={{ color:"#1e293b" }}>✕</span>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:"16px 20px 32px" }}>
+        <PricingCTA selected={selected} onSelect={onSelect}/>
+      </div>
+    </div>
+  );
+}
+
+function AuthPage({ plan, onSuccess, onBack, onCGU, onPrivacy }) {
+  const [mode, setMode] = useState("signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState(plan || "free");
+
+  const planData = PLANS.find(p=>p.id===selectedPlan);
+
+  const submit = async () => {
+    setError("");
+    if (!email || !password) return setError("Tous les champs sont obligatoires.");
+    if (mode === "signup" && password !== confirm) return setError("Les mots de passe ne correspondent pas.");
+    if (password.length < 8) return setError("Le mot de passe doit faire au moins 8 caractères.");
+    setLoading(true);
+    await new Promise(r=>setTimeout(r,1200));
+    setLoading(false);
+    onSuccess({ email, tier: selectedPlan });
+  };
+
+  const socialLogin = async (provider) => {
+    setSocialLoading(provider);
+    await new Promise(r=>setTimeout(r,1000));
+    setSocialLoading("");
+    onSuccess({ email: `user@${provider}.com`, tier: selectedPlan, provider });
+  };
+
+  return (
+    <div style={{ overflowY:"auto", maxHeight:"100vh", paddingBottom:90 }}>
+      <div style={{ padding:"20px" }}>
+        {/* Header centré avec back button absolu */}
+        <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:24, minHeight:36 }}>
+          <button onClick={onBack} style={{ position:"absolute", left:0, background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>←</button>
+          <div style={{ textAlign:"center" }}>
+            <Logo size="md"/>
+          </div>
+        </div>
+
+        {/* Titre centré */}
+        <div style={{ textAlign:"center", marginBottom:20 }}>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:18, color:"#f1f5f9" }}>
+            {mode==="signup" ? "Rejoins le vestiaire" : "Bon retour dans le vestiaire"}
+          </div>
+          <div style={{ fontSize:13, color:"#64748b", marginTop:4 }}>
+            {mode==="signup" ? "Crée ton compte gratuitement" : "Connecte-toi à ton compte"}
+          </div>
+        </div>
+
+        {/* Toggle mode */}
+        <div style={{ display:"flex", background:"#0f172a", border:"1px solid #1e293b", borderRadius:14, padding:4, marginBottom:20 }}>
+          {[["signup","✦ Créer un compte"],["login","→ Se connecter"]].map(([m,l])=>(
+            <button key={m} onClick={()=>setMode(m)} style={{ flex:1, padding:"10px", border:"none", borderRadius:10, background:mode===m?"#1e293b":"transparent", color:mode===m?"#f1f5f9":"#475569", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", transition:"all .2s" }}>{l}</button>
+          ))}
+        </div>
+
+        {/* Social login - priorité visuelle */}
+        <div style={{ marginBottom:16 }}>
+          <button onClick={()=>socialLogin("apple")} disabled={!!socialLoading} style={{ width:"100%", padding:"13px", border:"1px solid #1e293b", borderRadius:12, background:"#0f172a", color:"#f1f5f9", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:10, fontFamily:"'Outfit',sans-serif", opacity:socialLoading?0.6:1 }}>
+            {socialLoading==="apple" ? "Connexion..." : <><span style={{ fontSize:18 }}>🍎</span> Continuer avec Apple</>}
+          </button>
+          <button onClick={()=>socialLogin("google")} disabled={!!socialLoading} style={{ width:"100%", padding:"13px", border:"1px solid #1e293b", borderRadius:12, background:"#0f172a", color:"#f1f5f9", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", opacity:socialLoading?0.6:1 }}>
+            {socialLoading==="google" ? "Connexion..." : <><span style={{ fontSize:18 }}>🌐</span> Continuer avec Google</>}
+          </button>
+        </div>
+
+        {/* Séparateur */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
+          <div style={{ flex:1, height:1, background:"#1e293b" }}/>
+          <span style={{ fontSize:11, color:"#334155" }}>ou avec ton email</span>
+          <div style={{ flex:1, height:1, background:"#1e293b" }}/>
+        </div>
+
+        {/* Formulaire email */}
+        <Input label="Adresse email" type="email" value={email} onChange={setEmail} placeholder="ton@email.com"/>
+        <Input label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="8 caractères minimum" hint={mode==="signup"?"Minimum 8 caractères":undefined}/>
+        {mode==="signup" && <Input label="Confirmer le mot de passe" type="password" value={confirm} onChange={setConfirm} placeholder="Répétez votre mot de passe"/>}
+
+        {error && <div style={{ background:"#160000", border:"1px solid #7f1d1d", borderRadius:10, padding:"10px 14px", color:"#fca5a5", fontSize:13, marginBottom:14 }}>{error}</div>}
+
+        {/* Choix du plan — tous les plans visibles */}
+        {mode==="signup" && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:10, fontFamily:"'Syne',sans-serif" }}>Choisir ton camp</div>
+            <div style={{ display:"flex", gap:8 }}>
+              {PLANS.map(p=>(
+                <div key={p.id} onClick={()=>setSelectedPlan(p.id)} style={{ flex:1, borderRadius:12, border:`2px solid ${selectedPlan===p.id?p.color:"#1e293b"}`, background:selectedPlan===p.id?p.bg:"#0a0e17", padding:"10px 6px", cursor:"pointer", transition:"all .2s", textAlign:"center", position:"relative", overflow:"hidden" }}>
+                  {p.id==="luxe" && <div style={{ position:"absolute", top:0, left:0, right:0, background:"linear-gradient(135deg,#D97706,#FBBF24)", color:"#000", fontSize:7, fontWeight:800, padding:"2px", fontFamily:"'Syne',sans-serif" }}>⭐</div>}
+                  <div style={{ marginTop:p.id==="luxe"?10:0 }}>
+                    <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:12, color:selectedPlan===p.id?p.color:"#475569" }}>{p.label}</div>
+                    <div style={{ fontSize:11, color:p.color, fontWeight:700, marginTop:2 }}>{p.price}</div>
+                    <div style={{ fontSize:9, color:"#334155" }}>{p.id==="free"?"gratuit":p.period}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {selectedPlan==="free" && <div style={{ fontSize:11, color:"#475569", marginTop:8, padding:"8px 12px", background:"#0f172a", borderRadius:10, border:"1px solid #1e293b" }}>✓ Gratuit · 3 analyses par jour · Pas de carte bancaire requise</div>}
+            {selectedPlan!=="free" && <div style={{ fontSize:11, color:"#475569", marginTop:8, padding:"8px 12px", background:"#0f172a", borderRadius:10, border:"1px solid #1e293b" }}>💳 Le paiement sera demandé après la création du compte</div>}
+          </div>
+        )}
+
+        {/* Badges sécurité */}
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:14, padding:"12px 14px", marginBottom:16 }}>
+          {[["🔒","Connexion chiffrée SSL"],["🛡️","Données protégées RGPD"],["✓","Annulation à tout moment"]].map(([icon,text])=>(
+            <div key={text} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6, fontSize:12, color:"#64748b", lastChild:{marginBottom:0} }}>
+              <span style={{ color:"#34D399" }}>{icon}</span>{text}
+            </div>
+          ))}
+        </div>
+
+        <button onClick={submit} disabled={loading} style={{ width:"100%", padding:15, border:"none", borderRadius:14, background:`linear-gradient(135deg,${planData.color}cc,${planData.color})`, color:selectedPlan==="luxe"?"#000":"#fff", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:15, cursor:loading?"not-allowed":"pointer", opacity:loading?0.7:1 }}>
+          {loading ? "⏳ Création du compte..." : mode==="signup" ? "⚽ Rejoindre le vestiaire" : "→ Entrer dans le vestiaire"}
+        </button>
+
+        {mode==="signup" && <div style={{ fontSize:11, color:"#334155", textAlign:"center", marginTop:12, lineHeight:1.7 }}>En créant un compte, tu acceptes nos <span onClick={onCGU} style={{ color:"#60a5fa", textDecoration:"underline", cursor:"pointer" }}>CGU</span> et notre <span onClick={onPrivacy} style={{ color:"#60a5fa", textDecoration:"underline", cursor:"pointer" }}>politique de confidentialité</span>.</div>}
+      </div>
+    </div>
+  );
+}
+
+function VestiairePage({ user, onLogout, onChangePlan }) {
+  const [tab, setTab] = useState("historique");
+  const [suggestion, setSuggestion] = useState("");
+  const [sent, setSent] = useState(false);
+  const [showUnsub, setShowUnsub] = useState(false);
+  const planData = PLANS.find(p=>p.id===user.tier)||PLANS[0];
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ padding:"20px 20px 0" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+          <Logo size="sm"/>
+          <div style={{ display:"flex", alignItems:"center", gap:6, background:planData.bg, border:`1px solid ${planData.color}55`, borderRadius:20, padding:"5px 12px" }}>
+            <span style={{ color:planData.color, fontSize:12, fontWeight:700, fontFamily:"'Syne',sans-serif" }}>{planData.label}</span>
+          </div>
+        </div>
+
+        <div style={{ background:"linear-gradient(135deg,#0f172a,#1c1000)", border:`1px solid ${planData.color}33`, borderRadius:18, padding:"16px" }}>
+          <div style={{ fontSize:10, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:4, fontFamily:"'Syne',sans-serif" }}>Mon Vestiaire</div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9" }}>{user.email}</div>
+          <div style={{ fontSize:12, color:"#64748b", marginTop:4 }}>Plan {planData.label} · {planData.price}{planData.period}</div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:6, padding:"14px 20px 0", overflowX:"auto" }}>
+        {[["historique","📊 Mes analyses"],["suggestions","💬 Suggestions"],["compte","⚙️ Compte"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{ flexShrink:0, padding:"8px 14px", borderRadius:10, border:"none", background:tab===t?"#1e293b":"transparent", color:tab===t?"#f1f5f9":"#475569", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'Syne',sans-serif" }}>{l}</button>
+        ))}
+      </div>
+
+      <div style={{ padding:"14px 20px" }}>
+        {tab === "historique" && (
+          <div>
+            <div style={{ fontSize:12, color:"#475569", marginBottom:14 }}>Vos analyses passées et les vrais résultats des matchs</div>
+            {MOCK_HISTORIQUE.map((h,i)=>(
+              <div key={i} style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:16, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
+                  <div>
+                    <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f1f5f9" }}>{h.match}</div>
+                    <div style={{ fontSize:11, color:"#475569" }}>{h.competition} · {h.date}</div>
+                  </div>
+                  <span style={{ fontSize:11, fontWeight:700, padding:"3px 8px", borderRadius:20, background:h.statut==="gagne"?"#052e16":"#160000", color:h.statut==="gagne"?"#34D399":"#f87171", border:`1px solid ${h.statut==="gagne"?"#34D39944":"#7f1d1d"}` }}>
+                    {h.statut==="gagne"?"✓ Gagnant":"✗ Perdu"}
+                  </span>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:12 }}>
+                  <span style={{ color:"#64748b" }}>Prédiction : <span style={{ color:"#94a3b8" }}>{h.prediction}</span></span>
+                  <span style={{ color:"#94a3b8", fontWeight:600 }}>{h.result}</span>
+                </div>
+              </div>
+            ))}
+            <div style={{ textAlign:"center", padding:"16px 0", fontSize:12, color:"#334155" }}>Vos prochaines analyses apparaîtront ici</div>
+          </div>
+        )}
+
+        {tab === "suggestions" && (
+          <div>
+            <div style={{ fontSize:13, color:"#64748b", marginBottom:16, lineHeight:1.6 }}>Une idée pour améliorer PronosAI ? Un championnat à ajouter ? Dis-nous tout.</div>
+            {!sent ? (
+              <>
+                <textarea value={suggestion} onChange={e=>setSuggestion(e.target.value)} placeholder="Ex: Ajouter la Ligue des champions féminine, améliorer les stats de mi-temps..."
+                  style={{ width:"100%", background:"#0f172a", border:"1.5px solid #1e293b", borderRadius:14, padding:"14px", color:"#e2e8f0", fontSize:14, outline:"none", resize:"vertical", minHeight:120, fontFamily:"'Outfit',sans-serif", lineHeight:1.6 }}/>
+                <Btn full onClick={()=>{if(suggestion.trim()){setSent(true);}}} variant="gold" size="lg">Envoyer ma suggestion</Btn>
+              </>
+            ) : (
+              <div style={{ background:"#052e16", border:"1px solid #34D39944", borderRadius:16, padding:"20px", textAlign:"center" }}>
+                <div style={{ fontSize:24, marginBottom:8 }}>⚽</div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:16, color:"#34D399", marginBottom:6 }}>Merci pour ta suggestion !</div>
+                <div style={{ fontSize:13, color:"#64748b" }}>On l'étudie sérieusement. PronosAI s'améliore grâce à vous.</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "compte" && (
+          <div>
+            <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:16, padding:"16px", marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:12, fontFamily:"'Syne',sans-serif" }}>Changer de plan</div>
+              {PLANS.filter(p=>p.id!==user.tier).map(p=>(
+                <div key={p.id} onClick={()=>onChangePlan(p.id)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", background:"#080c15", border:`1px solid ${p.border}`, borderRadius:12, marginBottom:8, cursor:"pointer" }}>
+                  <div>
+                    <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:p.color }}>{p.label}</div>
+                    <div style={{ fontSize:11, color:"#475569", marginTop:2 }}>{p.price}{p.period}</div>
+                  </div>
+                  <span style={{ color:p.color, fontSize:18 }}>›</span>
+                </div>
+              ))}
+              {user.tier !== "luxe" && <div style={{ fontSize:11, color:"#475569", marginTop:8, textAlign:"center" }}>💡 Le plan Luxe offre l'analyse la plus complète du marché</div>}
+            </div>
+
+            <button onClick={onLogout} style={{ width:"100%", padding:"12px", background:"transparent", border:"1px solid #1e293b", borderRadius:12, color:"#94a3b8", fontSize:14, fontFamily:"'Syne',sans-serif", fontWeight:600, cursor:"pointer", marginBottom:10 }}>
+              Se déconnecter
+            </button>
+
+            {user.tier !== "free" && !showUnsub && (
+              <button onClick={()=>setShowUnsub(true)} style={{ width:"100%", padding:"12px", background:"transparent", border:"1px solid #7f1d1d", borderRadius:12, color:"#f87171", fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:600, cursor:"pointer" }}>
+                Se désabonner
+              </button>
+            )}
+
+            {showUnsub && (
+              <div style={{ background:"#160000", border:"1px solid #7f1d1d", borderRadius:16, padding:"16px" }}>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f87171", marginBottom:8 }}>Confirmer le désabonnement</div>
+                <div style={{ fontSize:12, color:"#94a3b8", lineHeight:1.6, marginBottom:14 }}>
+                  ⚠️ Tout mois commencé est dû. Votre accès restera actif jusqu'à la fin de la période en cours. Vous passerez ensuite au plan Gratuit (3 analyses/jour).
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={()=>setShowUnsub(false)} style={{ flex:1, padding:10, background:"#1e293b", border:"none", borderRadius:10, color:"#94a3b8", fontSize:13, cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600 }}>Annuler</button>
+                  <button onClick={()=>{ alert("Désabonnement confirmé. Merci d'avoir utilisé PronosAI."); onLogout(); }} style={{ flex:1, padding:10, background:"#7f1d1d", border:"none", borderRadius:10, color:"#fca5a5", fontSize:13, cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600 }}>Confirmer</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnalysePage({ user, onOpenVestiaire, onGoAuth }) {
+  const tier = user?.tier || "free";
+  const planData = PLANS.find(p=>p.id===tier);
+  const tc = planData.color;
+
+  const [competition, setCompetition] = useState("");
+  const [customCompetition, setCustomCompetition] = useState("");
+  const [team1, setTeam1] = useState("");
+  const [team2, setTeam2] = useState("");
+  const [comboMatches, setComboMatches] = useState([{t1:"",t2:""}]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [analysesLeft, setAnalysesLeft] = useState(3);
+  const resultRef = useRef();
+
+  const effectiveCompetition = competition === "__autre__" ? customCompetition : competition;
+  const teams = competition && LEAGUES[competition] ? LEAGUES[competition] : Object.values(LEAGUES).flat().filter(t=>!t.startsWith("──"));
+  const canAnalyze = team1.trim().length>1 && team2.trim().length>1 && (tier!=="free"||analysesLeft>0);
+
+  const analyze = async () => {
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const prompt = buildPrompt(tier, { team1, team2, competition: effectiveCompetition, comboMatches });
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, tools:[{type:"web_search_20250305",name:"web_search"}], messages:[{role:"user",content:prompt}] }),
+      });
+      const data = await res.json();
+      const text = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"";
+      const clean = text.replace(/```json|```/g,"").trim();
+      const start = clean.indexOf("{"), end = clean.lastIndexOf("}");
+      if(start===-1) throw new Error("JSON introuvable");
+      const parsed = JSON.parse(clean.slice(start,end+1));
+      setResult(parsed);
+      if(tier==="free") setAnalysesLeft(a=>Math.max(0,a-1));
+      setTimeout(()=>resultRef.current?.scrollIntoView({behavior:"smooth"}),100);
+    } catch(e) {
+      setError("Erreur lors de l'analyse. Vérifiez votre connexion et réessayez.");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      {/* Top bar */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 20px 0" }}>
+        <Logo size="sm"/>
+        <div style={{ display:"flex", gap:8 }}>
+          {user && <button onClick={onOpenVestiaire} style={{ background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, padding:"7px 12px", fontSize:12, cursor:"pointer", display:"flex", alignItems:"center", gap:5, fontFamily:"'Outfit',sans-serif" }}>👕 Vestiaire</button>}
+        </div>
+      </div>
+
+      {/* Plan strip */}
+      <div style={{ margin:"12px 20px 0", padding:"10px 14px", background:planData.bg, border:`1px solid ${tc}44`, borderRadius:12, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span style={{ fontSize:12, color:tc, fontWeight:600, fontFamily:"'Syne',sans-serif" }}>{planData.icon||"◈"} Plan {planData.label}</span>
+        {tier==="free" && <span style={{ fontSize:11, color:"#64748b" }}>{analysesLeft}/3 analyses restantes</span>}
+        {tier!=="free" && <span style={{ fontSize:11, color:"#64748b" }}>Analyses illimitées</span>}
+      </div>
+
+      {/* Form */}
+      <div style={{ margin:"14px 20px 0", background:"#0f172a", border:"1px solid #1e293b", borderRadius:20, padding:18 }}>
+        {/* Competition select */}
+        <div style={{ marginBottom:14 }}>
+          <label style={{ display:"block", fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:6, fontFamily:"'Syne',sans-serif" }}>Compétition</label>
+          <div style={{ position:"relative" }}>
+            <select value={competition} onChange={e=>{setCompetition(e.target.value);setTeam1("");setTeam2("");}}
+              style={{ width:"100%", background:"#080c15", border:"1.5px solid #1e293b", borderRadius:12, padding:"12px 36px 12px 14px", color:competition?"#e2e8f0":"#334155", fontSize:14, outline:"none", cursor:"pointer" }}>
+              <option value="">Sélectionner une compétition...</option>
+              {Object.keys(LEAGUES).map(l => {
+                if (l.startsWith("──")) return <option key={l} disabled style={{ color:"#334155", fontWeight:700 }}>{'── ' + l.replace(/──/g,'').trim() + ' ──'}</option>;
+                return <option key={l} value={l}>{l}</option>;
+              })}
+              <option value="__autre__">✏️ Autre / Saisir manuellement</option>
+            </select>
+            <span style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", color:"#475569", pointerEvents:"none" }}>▾</span>
+          </div>
+          {competition==="__autre__" && (
+            <input
+              value={customCompetition}
+              onChange={e=>setCustomCompetition(e.target.value)}
+              placeholder="Ex: Amical France U21, Qualif. Coupe du Monde..."
+              style={{ width:"100%", background:"#080c15", border:"1.5px solid #FBBF2444", borderRadius:12, padding:"11px 14px", color:"#e2e8f0", fontSize:14, outline:"none", marginTop:8, fontFamily:"'Outfit',sans-serif" }}
+            />
+          )}
+        </div>
+
+        {/* Teams */}
+        <div style={{ marginBottom:14 }}>
+          <label style={{ display:"block", fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#475569", marginBottom:6, fontFamily:"'Syne',sans-serif" }}>Équipes</label>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 28px 1fr", gap:8, alignItems:"start" }}>
+            <TeamSearch value={team1} onChange={setTeam1} teams={teams}/>
+            <div style={{ textAlign:"center", fontSize:10, fontWeight:800, color:"#334155", fontFamily:"'Syne',sans-serif", paddingTop:14 }}>VS</div>
+            <TeamSearch value={team2} onChange={setTeam2} teams={teams.filter(t=>t!==team1)}/>
+          </div>
+        </div>
+
+        {/* Combo - Luxe only */}
+        {tier==="luxe" && (
+          <div style={{ marginBottom:14, background:"#080c15", border:`1px dashed ${tc}55`, borderRadius:14, padding:14 }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:tc, textTransform:"uppercase", marginBottom:10, fontFamily:"'Syne',sans-serif", display:"flex", alignItems:"center" }}>
+              👑 Matchs combinés<Tooltip text="Ajoutez jusqu'à 4 matchs pour analyser votre combiné et obtenir sa probabilité de réussite"/>
+            </div>
+            {comboMatches.map((m,i)=>(
+              <div key={i} style={{ display:"flex", gap:6, marginBottom:8, alignItems:"center" }}>
+                <input value={m.t1} onChange={e=>{const u=[...comboMatches];u[i]={...u[i],t1:e.target.value};setComboMatches(u);}} placeholder="Équipe A"
+                  style={{ flex:1, background:"#0f172a", border:"1px solid #1e293b", borderRadius:8, padding:"8px 10px", color:"#e2e8f0", fontSize:13, outline:"none" }}/>
+                <span style={{ fontSize:9, color:"#334155", fontWeight:700 }}>VS</span>
+                <input value={m.t2} onChange={e=>{const u=[...comboMatches];u[i]={...u[i],t2:e.target.value};setComboMatches(u);}} placeholder="Équipe B"
+                  style={{ flex:1, background:"#0f172a", border:"1px solid #1e293b", borderRadius:8, padding:"8px 10px", color:"#e2e8f0", fontSize:13, outline:"none" }}/>
+                {comboMatches.length>1 && <button onClick={()=>setComboMatches(comboMatches.filter((_,j)=>j!==i))} style={{ background:"none", border:"1px solid #1e293b", color:"#475569", borderRadius:8, width:28, height:28, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>}
+              </div>
+            ))}
+            {comboMatches.length<4 && <button onClick={()=>setComboMatches([...comboMatches,{t1:"",t2:""}])} style={{ background:`${tc}15`, border:`1px solid ${tc}44`, color:tc, borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer", width:"100%", fontFamily:"'Syne',sans-serif" }}>+ Ajouter un match</button>}
+          </div>
+        )}
+
+        {tier==="free" && analysesLeft===0 && (
+          <div style={{ background:"#1c1000", border:"1px solid #FBBF2444", borderRadius:12, padding:"12px 14px", marginBottom:14, fontSize:13, color:"#FBBF24", textAlign:"center" }}>
+            Limite quotidienne atteinte · <span style={{ textDecoration:"underline", cursor:"pointer" }}>Passer en Premium</span> pour des analyses illimitées
+          </div>
+        )}
+
+        <button onClick={analyze} disabled={loading||!canAnalyze} style={{ width:"100%", padding:15, border:"none", borderRadius:14, background:canAnalyze&&!loading?`linear-gradient(135deg,${tc}cc,${tc})`:"#1e293b", color:tier==="luxe"&&canAnalyze?"#000":"#fff", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:15, cursor:canAnalyze&&!loading?"pointer":"not-allowed", transition:"all .2s" }}>
+          {loading ? "⚡ Analyse en cours..." : "⚽ Analyser ce match"}
+        </button>
+      </div>
+
+      {error && <div style={{ margin:"12px 20px 0", background:"#160000", border:"1px solid #7f1d1d", borderRadius:14, padding:"14px", color:"#fca5a5", fontSize:13 }}>{error}</div>}
+
+      {loading && (
+        <div style={{ margin:"14px 20px 0" }}>
+          {[80,100,60].map((h,i)=><div key={i} style={{ height:h, background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, marginBottom:10, animation:`pulse 1.5s infinite`, animationDelay:`${i*.2}s` }}/>)}
+          <div style={{ textAlign:"center", color:"#475569", fontSize:12, marginTop:8 }}>L'IA collecte et analyse les données...</div>
+        </div>
+      )}
+
+      {result && !loading && (
+        <div style={{ margin:"14px 20px 0" }} ref={resultRef}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#f1f5f9" }}>{team1} <span style={{ color:"#475569", fontWeight:400 }}>vs</span> {team2}</div>
+            <span style={{ fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:`${tc}20`, color:tc, border:`1px solid ${tc}44`, letterSpacing:1, textTransform:"uppercase" }}>{planData.label}</span>
+          </div>
+          <ResultBlock data={result} tier={tier} team1={team1} team2={team2}/>
+        </div>
+      )}
+
+      {/* Upgrade banners */}
+      {tier==="free" && (
+        <div style={{ padding:"16px 20px 0" }}>
+          <div onClick={()=>onGoAuth("premium")} style={{ background:"linear-gradient(135deg,#0c1a3a,#1e3a5f)", border:"1px solid #60A5FA55", borderRadius:16, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:10, cursor:"pointer" }}>
+            <span style={{ fontSize:24 }}>🏆</span>
+            <div style={{ flex:1 }}><div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f1f5f9" }}>Premium · 9,99€/mois</div><div style={{ fontSize:12, color:"#64748b", marginTop:2 }}>Stats avancées, paris, analyses illimitées</div></div>
+            <span style={{ color:"#60A5FA", fontSize:20 }}>›</span>
+          </div>
+          <div onClick={()=>onGoAuth("luxe")} style={{ background:"linear-gradient(135deg,#1c1000,#451a03)", border:"1px solid #FBBF2455", borderRadius:16, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, cursor:"pointer" }}>
+            <span style={{ fontSize:24 }}>👑</span>
+            <div style={{ flex:1 }}><div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f1f5f9" }}>Luxe · 19,99€/mois</div><div style={{ fontSize:12, color:"#64748b", marginTop:2 }}>Buteurs, scores exacts, combinés, risques</div></div>
+            <span style={{ color:"#FBBF24", fontSize:20 }}>›</span>
+          </div>
+        </div>
+      )}
+      <div style={{ height:80 }}/>
+    </div>
+  );
+}
+
+function LexiquePage({ onBack }) {
+  return (
+    <div>
+      <div style={{ position:"sticky", top:0, background:"#06090f", padding:"20px 20px 12px", display:"flex", alignItems:"center", gap:12, borderBottom:"1px solid #1e293b", zIndex:10 }}>
+        <button onClick={onBack} style={{ background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>←</button>
+        <div><div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9" }}>Lexique</div><div style={{ fontSize:11, color:"#475569" }}>Tous les termes expliqués simplement</div></div>
+      </div>
+      <div style={{ padding:"16px 20px" }}>
+        <div style={{ fontSize:13, color:"#64748b", marginBottom:20, lineHeight:1.6, background:"#0f172a", borderRadius:12, padding:"12px 14px", border:"1px solid #1e293b" }}>
+          💡 Nouveau dans les paris ? Ce lexique explique simplement tous les termes techniques de tes analyses PronosAI.
+        </div>
+        {LEXIQUE.map(item=>(
+          <div key={item.term} style={{ marginBottom:12, background:"#0f172a", border:"1px solid #1e293b", borderRadius:14, padding:"14px 16px" }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:5 }}>
+              <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:15, color:"#60a5fa" }}>{item.term}</span>
+              <span style={{ fontSize:11, color:"#475569" }}>{item.full}</span>
+            </div>
+            <p style={{ fontSize:13, color:"#94a3b8", lineHeight:1.6, margin:0 }}>{item.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuiSommesNousPage({ onBack }) {
+  return (
+    <div>
+      <div style={{ position:"sticky", top:0, background:"#06090f", padding:"20px 20px 12px", display:"flex", alignItems:"center", gap:12, borderBottom:"1px solid #1e293b", zIndex:10 }}>
+        <button onClick={onBack} style={{ background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>←</button>
+        <div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9" }}>Qui sommes-nous ?</div>
+          <div style={{ fontSize:11, color:"#475569" }}>L'histoire derrière PronosAI</div>
+        </div>
+      </div>
+      <div style={{ padding:"20px" }}>
+        {/* Photo placeholder */}
+        <div style={{ width:80, height:80, borderRadius:"50%", background:"linear-gradient(135deg,#1c1000,#FBBF2444)", border:"2px solid #FBBF2455", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, margin:"0 auto 20px" }}>⚽</div>
+
+        <div style={{ background:"linear-gradient(135deg,#0f172a,#1c1000)", border:"1px solid #FBBF2433", borderRadius:20, padding:"20px", marginBottom:16 }}>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color:"#FBBF24", marginBottom:4 }}>Fondateur de PronosAI</div>
+          <div style={{ fontSize:12, color:"#64748b", marginBottom:16 }}>Parieur depuis plus de 10 ans</div>
+          <p style={{ fontSize:14, color:"#cbd5e1", lineHeight:1.85, margin:0 }}>
+            Comme beaucoup d'entre vous, j'ai commencé à parier par passion du football. Regarder un match, avoir un avis sur le résultat, ressentir l'adrénaline d'un pari gagné — c'est quelque chose que j'ai toujours aimé.
+          </p>
+        </div>
+
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:"18px", marginBottom:16 }}>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, color:"#f1f5f9", marginBottom:10 }}>Le problème que j'ai vécu</div>
+          <p style={{ fontSize:14, color:"#94a3b8", lineHeight:1.85, margin:0 }}>
+            Pendant des années, j'ai été confronté à une réalité frustrante : les données existent, les statistiques sont accessibles, mais les analyser correctement demande du temps, des connaissances et des outils que la plupart des parieurs n'ont pas. Je passais des heures à parcourir différents sites, à essayer de comprendre les formes des équipes, les H2H, les blessures… sans jamais être sûr de prendre en compte tous les bons critères.
+          </p>
+        </div>
+
+        <div style={{ background:"#0f172a", border:"1px solid #1e293b", borderRadius:18, padding:"18px", marginBottom:16 }}>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, color:"#f1f5f9", marginBottom:10 }}>Pourquoi PronosAI</div>
+          <p style={{ fontSize:14, color:"#94a3b8", lineHeight:1.85, margin:0 }}>
+            C'est exactement de cette frustration qu'est née l'idée de PronosAI. J'ai voulu créer l'outil que j'aurais aimé avoir dès le début : une application qui centralise toutes les données, les analyse comme le ferait un expert, et les présente clairement — que tu sois débutant ou parieur expérimenté. L'IA fait le travail d'analyse, l'humain garde le contrôle de sa décision.
+          </p>
+        </div>
+
+        <div style={{ background:"linear-gradient(135deg,#052e16,#0f172a)", border:"1px solid #34D39944", borderRadius:18, padding:"18px", marginBottom:16 }}>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, color:"#34D399", marginBottom:10 }}>Notre engagement</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {["Transparence totale sur les analyses et leurs résultats réels","Aucune promesse de gain — nous fournissons des outils, pas des miracles","Amélioration continue grâce aux retours de nos utilisateurs","Jeu responsable au cœur de notre démarche"].map((t,i)=>(
+              <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                <span style={{ color:"#34D399", marginTop:2, flexShrink:0 }}>✓</span>
+                <span style={{ fontSize:13, color:"#94a3b8", lineHeight:1.6 }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background:"#0f172a", border:"1px solid #FBBF2433", borderRadius:18, padding:"18px", textAlign:"center" }}>
+          <div style={{ fontSize:16, color:"#FBBF24", fontFamily:"'Syne',sans-serif", fontWeight:800, fontStyle:"italic", lineHeight:1.5 }}>
+            "PronosAI, c'est l'app que j'aurais voulu avoir dès le début."
+          </div>
+        </div>
+
+        <div style={{ marginTop:16, padding:"12px 14px", background:"#0f172a", border:"1px solid #1e293b", borderRadius:12, fontSize:11, color:"#475569", lineHeight:1.6 }}>
+          ⚠️ PronosAI est un outil d'aide à la décision. Les paris sportifs comportent des risques financiers. Jouez de manière responsable. <strong style={{ color:"#64748b" }}>Interdit aux mineurs.</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CGUPage({ onBack }) {
+  return (
+    <div>
+      <div style={{ position:"sticky", top:0, background:"#06090f", padding:"20px 20px 12px", display:"flex", alignItems:"center", gap:12, borderBottom:"1px solid #1e293b", zIndex:10 }}>
+        <button onClick={onBack} style={{ background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>←</button>
+        <div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9" }}>CGU</div>
+          <div style={{ fontSize:11, color:"#475569" }}>Conditions Générales d'Utilisation</div>
+        </div>
+      </div>
+      <div style={{ padding:"20px", paddingBottom:90 }}>
+        {[
+          { titre:"1. Objet", contenu:"Les présentes Conditions Générales d'Utilisation (CGU) régissent l'accès et l'utilisation de l'application PronosAI, éditée par [Nom/Raison sociale], [Adresse], [SIRET]. En créant un compte, l'utilisateur accepte sans réserve les présentes CGU." },
+          { titre:"2. Accès au service", contenu:"PronosAI est accessible à toute personne majeure (18 ans et plus). L'accès aux fonctionnalités d'analyse est conditionné à la création d'un compte. Trois niveaux d'abonnement sont proposés : Gratuit (3 analyses/jour), Premium (9,99€/mois) et Luxe (19,99€/mois)." },
+          { titre:"3. Compte utilisateur", contenu:"L'utilisateur s'engage à fournir des informations exactes lors de l'inscription et à maintenir la confidentialité de ses identifiants. Tout accès frauduleux ou non autorisé entraîne la résiliation immédiate du compte." },
+          { titre:"4. Abonnements et paiements", contenu:"Les abonnements payants sont facturés mensuellement via Stripe. Tout mois commencé est dû dans son intégralité. L'annulation prend effet à la fin de la période en cours. Aucun remboursement ne sera effectué pour la période déjà facturée." },
+          { titre:"5. Avertissement sur les paris", contenu:"PronosAI est un outil d'aide à la décision. Les analyses fournies sont à titre informatif uniquement et ne constituent pas des conseils financiers. Les paris sportifs comportent des risques de perte financière. PronosAI décline toute responsabilité quant aux décisions de paris prises par l'utilisateur." },
+          { titre:"6. Interdiction aux mineurs", contenu:"L'accès à PronosAI est strictement interdit aux personnes de moins de 18 ans. En créant un compte, l'utilisateur atteste être majeur." },
+          { titre:"7. Propriété intellectuelle", contenu:"L'ensemble des éléments de PronosAI (logo, interface, algorithmes, contenus) est la propriété exclusive de l'éditeur. Toute reproduction ou utilisation sans autorisation est interdite." },
+          { titre:"8. Données personnelles", contenu:"Les données collectées sont traitées conformément au RGPD. Pour exercer vos droits (accès, rectification, suppression), contactez : [email@pronosai.fr]." },
+          { titre:"9. Modification des CGU", contenu:"L'éditeur se réserve le droit de modifier les présentes CGU à tout moment. L'utilisateur sera notifié par email en cas de modification substantielle. La poursuite de l'utilisation vaut acceptation des nouvelles CGU." },
+          { titre:"10. Droit applicable", contenu:"Les présentes CGU sont soumises au droit français. Tout litige sera porté devant les tribunaux compétents de [ville]." },
+        ].map((s,i)=>(
+          <div key={i} style={{ marginBottom:16, background:"#0f172a", border:"1px solid #1e293b", borderRadius:14, padding:"14px 16px" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#60a5fa", marginBottom:8 }}>{s.titre}</div>
+            <p style={{ fontSize:13, color:"#94a3b8", lineHeight:1.7, margin:0 }}>{s.contenu}</p>
+          </div>
+        ))}
+        <div style={{ fontSize:11, color:"#334155", textAlign:"center", marginTop:8 }}>Dernière mise à jour : Juin 2026</div>
+      </div>
+    </div>
+  );
+}
+
+function PrivacyPage({ onBack }) {
+  return (
+    <div>
+      <div style={{ position:"sticky", top:0, background:"#06090f", padding:"20px 20px 12px", display:"flex", alignItems:"center", gap:12, borderBottom:"1px solid #1e293b", zIndex:10 }}>
+        <button onClick={onBack} style={{ background:"#0f172a", border:"1px solid #1e293b", color:"#94a3b8", borderRadius:10, width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>←</button>
+        <div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18, color:"#f1f5f9" }}>Confidentialité</div>
+          <div style={{ fontSize:11, color:"#475569" }}>Politique de protection des données (RGPD)</div>
+        </div>
+      </div>
+      <div style={{ padding:"20px", paddingBottom:90 }}>
+        {[
+          { titre:"Responsable du traitement", contenu:"[Nom/Raison sociale], [Adresse], [SIRET]. Contact DPO : [email@pronosai.fr]" },
+          { titre:"Données collectées", contenu:"Nous collectons : adresse email, mot de passe (chiffré), plan d'abonnement choisi, historique des analyses effectuées, données de paiement (traitées par Stripe, non stockées par PronosAI)." },
+          { titre:"Finalités du traitement", contenu:"Vos données sont utilisées pour : gestion de votre compte, fourniture du service d'analyse, traitement des paiements, amélioration du service, communication relative à votre abonnement." },
+          { titre:"Base légale", contenu:"Le traitement est fondé sur l'exécution du contrat (CGU acceptées) et le consentement pour les communications optionnelles." },
+          { titre:"Durée de conservation", contenu:"Vos données sont conservées pendant toute la durée de votre compte, puis 3 ans après sa suppression pour les obligations légales." },
+          { titre:"Vos droits (RGPD)", contenu:"Vous disposez d'un droit d'accès, de rectification, de suppression, de portabilité et d'opposition. Pour exercer ces droits : [email@pronosai.fr]. Vous pouvez également déposer une réclamation auprès de la CNIL (www.cnil.fr)." },
+          { titre:"Partage des données", contenu:"Vos données ne sont jamais vendues. Elles peuvent être partagées avec : Stripe (paiements), Supabase (hébergement sécurisé), Anthropic (traitement IA anonymisé). Tous nos prestataires sont conformes RGPD." },
+          { titre:"Sécurité", contenu:"Vos données sont chiffrées (SSL/TLS), stockées sur des serveurs sécurisés en Europe. Votre mot de passe est haché (bcrypt) et inaccessible même à notre équipe." },
+          { titre:"Cookies", contenu:"PronosAI utilise uniquement des cookies techniques nécessaires au fonctionnement du service (session, authentification). Aucun cookie publicitaire ou de tracking tiers." },
+        ].map((s,i)=>(
+          <div key={i} style={{ marginBottom:16, background:"#0f172a", border:"1px solid #1e293b", borderRadius:14, padding:"14px 16px" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#34d399", marginBottom:8 }}>{s.titre}</div>
+            <p style={{ fontSize:13, color:"#94a3b8", lineHeight:1.7, margin:0 }}>{s.contenu}</p>
+          </div>
+        ))}
+        <div style={{ fontSize:11, color:"#334155", textAlign:"center", marginTop:8 }}>Conformément au RGPD (UE) 2016/679 · Mise à jour : Juin 2026</div>
+      </div>
+    </div>
+  );
+}
+
+
+function BottomNav({ page, onNav, user }) {
+  const items = user ? [
+    { id:"home", icon:"🏠", label:"Accueil" },
+    { id:"analyse", icon:"⚽", label:"Analyser" },
+    { id:"pricing", icon:"🏆", label:"Plans" },
+    { id:"lexique", icon:"📖", label:"Lexique" },
+    { id:"vestiaire", icon:"👕", label:"Vestiaire" },
+  ] : [
+    { id:"home", icon:"🏠", label:"Accueil" },
+    { id:"pricing", icon:"🏆", label:"Plans" },
+    { id:"lexique", icon:"📖", label:"Lexique" },
+    { id:"auth", icon:"🔑", label:"Connexion" },
+  ];
+
+  const isActive = (id) => page === id || (page==="vestiaire"&&id==="vestiaire") || (page==="auth"&&id==="auth") || (page==="analyse"&&id==="analyse");
+
+  return (
+    <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:480, background:"#06090f", borderTop:"1px solid #1e293b", display:"flex", zIndex:100, padding:"8px 0 14px", backdropFilter:"blur(12px)" }}>
+      {items.map(item=>(
+        <button key={item.id} onClick={()=>onNav(item.id)}
+          style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", cursor:"pointer", padding:"4px 0", position:"relative" }}>
+          {item.id==="analyse" && user && (
+            <div style={{ position:"absolute", top:0, right:"calc(50% - 16px)", width:6, height:6, borderRadius:"50%", background:"#34D399" }}/>
+          )}
+          <span style={{ fontSize:18 }}>{item.icon}</span>
+          <span style={{ fontSize:9, fontWeight:600, color:isActive(item.id)?"#FBBF24":"#334155", fontFamily:"'Syne',sans-serif", letterSpacing:.5, textTransform:"uppercase", transition:"color .2s" }}>{item.label}</span>
+          {isActive(item.id) && <div style={{ position:"absolute", bottom:-14, width:20, height:2, background:"#FBBF24", borderRadius:2 }}/>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
+export default function App() {
+  const [page, setPage] = useState("home");
+  const [user, setUser] = useState(null);
+  const [pendingPlan, setPendingPlan] = useState(null);
+
+  const handlePlanSelect = (planId) => {
+    setPendingPlan(planId);
+    setPage("auth");
+  };
+
+  const handleAuth = (userData) => {
+    setUser(userData);
+    setPage("analyse");
+  };
+  const handleLogout = () => { setUser(null); setPage("home"); };
+  const handleChangePlan = (planId) => { setUser(u=>({...u,tier:planId})); };
+  const handleGoAuth = (planId) => { setPendingPlan(planId); setPage("auth"); };
+
+  const navTo = (p) => {
+    if (p === "analyse" && !user) { setPendingPlan("free"); setPage("auth"); return; }
+    if (p === "auth" && user) { setPage("vestiaire"); return; }
+    if (p === "vestiaire" && !user) { setPage("auth"); return; }
+    setPage(p);
+  };
+
+  return (
+    <>
+      <style>{G}</style>
+      <div style={{ maxWidth:480, margin:"0 auto", minHeight:"100vh", background:"#06090f", paddingBottom:72 }}>
+        {page==="home" && <LandingPage onNav={navTo} onChoosePlan={()=>setPage("pricing")} onQuiSommesNous={()=>setPage("qui-sommes-nous")}/>}
+        {page==="pricing" && <PricingPage onSelect={handlePlanSelect} onBack={()=>setPage("home")}/>}
+        {page==="auth" && <AuthPage plan={pendingPlan||"free"} onSuccess={handleAuth} onBack={()=>setPage(user?"home":"pricing")} onCGU={()=>setPage("cgu")} onPrivacy={()=>setPage("privacy")}/>}
+        {page==="analyse" && <AnalysePage user={user} onOpenVestiaire={()=>setPage("vestiaire")} onGoAuth={handleGoAuth}/>}
+        {page==="vestiaire" && user && <VestiairePage user={user} onLogout={handleLogout} onChangePlan={handleChangePlan}/>}
+        {page==="lexique" && <LexiquePage onBack={()=>setPage(user?"analyse":"home")}/>}
+        {page==="qui-sommes-nous" && <QuiSommesNousPage onBack={()=>setPage("home")}/>}
+        {page==="cgu" && <CGUPage onBack={()=>setPage("auth")}/>}
+        {page==="privacy" && <PrivacyPage onBack={()=>setPage("auth")}/>}
+        <BottomNav page={page} onNav={navTo} user={user}/>
+      </div>
+    </>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
