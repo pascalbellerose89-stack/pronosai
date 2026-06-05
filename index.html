@@ -4,22 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PronosAI</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html,body,#root { height:100%; background:#06090f; }
-body { overflow-x:hidden; }
-</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body,#root{min-height:100%;background:#06090f}body{overflow-x:hidden;-webkit-text-size-adjust:100%}</style>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
+<script type="text/babel">
 const { useState, useEffect, useRef } = React;
-
 
 
 
@@ -1261,9 +1255,9 @@ export default function App() {
   );
 }
 
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container);
+root.render(React.createElement(App));
 </script>
 </body>
 </html>
